@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="XTXSAB.js" ></script>
+    <script src="MyXTX.js" ></script>
+    <title>Document</title>
+</head>
+<body> 
+    <button style="width: 100px;height: 100px; color: brown;">点击</button>
+    <script>
+
+        window.onload = async function () {
+            let result = await MY_INIT();
+            console.log(result);
+        };
+        
+        async function optUKey(){
+            // 获取证书列表
+            let res = await MY_SOF_GetUserList();
+            // 获取证书ID数组
+            let certIDArray = [];
+            for (let index = 0; index < res.length-1; index++) {
+                let element = res[index];
+                if(element !== 'undefined' || element !== null ){
+                    certIDArray[index] = element.split("||")[1];
+                }
+            }
+            console.log("证书ID");
+            console.log(certIDArray);
+
+            // 读取证书
+            let certArray = [];
+            for (let index = 0; index < certIDArray.length; index++) {
+                let userCert = await MY_SOF_ExportUserCert(certIDArray[index]);
+                certArray[index] = userCert;
+            }
+            console.log("证书base64：");
+            console.log(certArray);
+
+            // 读取证书详细信息
+            for (let index = 0; index < certArray.length; index++) {
+                let base64Cert = certArray[index];
+                console.log("============================");
+                let userName = await MY_SOF_GetCertInfo(base64Cert, 17);
+                console.log("userName: " + userName);
+                let serialNumber = await MY_SOF_GetCertInfo(base64Cert, 2);
+                console.log("serialNumber: " + serialNumber);
+                let certDn = await MY_SOF_GetCertInfo(base64Cert, 33);
+                console.log("certDn: " + certDn);
+                let issuer = await MY_SOF_GetCertInfo(base64Cert, 34);
+                console.log("issuer: " + issuer);
+                let beginTime = await MY_SOF_GetCertInfo(base64Cert, 11);
+                console.log("beginTime: " + beginTime);
+                let endTime = await MY_SOF_GetCertInfo(base64Cert, 12);
+                console.log("endTime: " + endTime);
+                
+            }
+            console.log("++++++++++++++++++++++签名测试, 先登录");
+            console.log("签名用户ID:  " + certIDArray[0]);
+            
+            try {
+                let loginResult = MY_SOF_Login(certIDArray[0], "123456");
+                console.log("登陆成功： " + loginResult);
+                let loginNum = await MY_SOF_GetPinRetryCount(certIDArray[0]);
+                console.log(loginNum);
+            } catch (error) {
+                console.log(error);
+            }
+
+            // 签名测试
+            let plainText = "123456";
+            console.log("签名原文：   " + plainText);
+            let signedData = await MY_SOF_SignData(certIDArray[0], plainText);
+            console.log("签名结果：\n" + signedData);
+            // 验证签名
+            let verifyResult = await MY_SOF_VerifySignedData(certArray[0], plainText, signedData);
+            console.log("签名验证结果：  " + verifyResult);
+
+            
+
+        };
+        document.querySelector("button").onclick = function(){
+            optUKey();
+        }
+    </script>
+</body>
+</html>
